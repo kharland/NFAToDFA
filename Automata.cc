@@ -30,7 +30,7 @@ public:
   // Initializing constructor
   Automata( std::string alphabet, int start, int numStates )
   { 
-  	Init(alphabet,start,numStates);
+    Init(alphabet,start,numStates);
   }
 
   // Destructor
@@ -39,14 +39,14 @@ public:
   /**/
   void Init( std::string _alphabet, int _start, int _numStates )
   {
-  	numStates = _numStates;
-  	alphabet = _alphabet;
+    numStates = _numStates;
+    alphabet = _alphabet;
     start = _start;
-  	states.assign(numStates, State());
+    states.assign(numStates, State());
 
     for (int i = 0; i<numStates; i++)
-    	for (int j = 0; j<alphabet.length(); j++)
-    		states[i][alphabet.at(j)].assign(numStates, 0);
+      for (int j = 0; j<alphabet.length(); j++)
+        states[i][alphabet.at(j)].assign(numStates, 0);
   };
 
   /**/
@@ -102,40 +102,40 @@ public:
   /**/
   void Print()
   {
-  	// header
-  	std::cout << " \t";
-  	for (int i = 0; i<alphabet.length(); i++) 
-  		std::cout << alphabet.at(i) << '\t';
+    // header
+    std::cout << " \t";
+    for (int i = 0; i<alphabet.length(); i++) 
+      std::cout << alphabet.at(i) << '\t';
     std::cout << '\n';
 
     // transition table
-  	for (int i = 0; i<numStates; i++) {
-  		std::cout << i+1 << ":\t";
-  		for (int j = 0; j<alphabet.length(); j++) {
-  			std::string set = "";
-  			for (int k = 0; k<states[i][alphabet.at(j)].size(); k++) {
-  				std::stringstream convert;
-  			  if (states[i][alphabet.at(j)][k]) {
-  			  	convert << k+1;
-  		      set += convert.str();
-  		      set += ',';
-  		    }
-  		  }
-  		  std::cout << '{' << set.substr(0,set.length()-1) << "}\t";
-  	  }
-  	  std::cout << '\n';
-  	}
-  };
+    for (int i = 0; i<numStates; i++) {
+      std::cout << i+1 << ":\t";
+      for (int j = 0; j<alphabet.length(); j++) {
+        std::string set = "";
+        for (int k = 0; k<states[i][alphabet.at(j)].size(); k++) {
+          std::stringstream convert;
+          if (states[i][alphabet.at(j)][k]) {
+            convert << k+1;
+            set += convert.str();
+            set += ',';
+          }
+        }
+        std::cout << '{' << set.substr(0,set.length()-1) << "}\t";
+      }
+      std::cout << '\n';
+    }
+};
 
 private:
 
-	/**
-	 * List of States in the automata. Each state is a mapping of an input symbol
-	 * to a bit vector (vector<bool>) in which each bit is set to 1 if there
-	 * exists an edge between the current state and state_i, else 0. This is much
-	 * more space efficient than representing each edge using type `int` (1 bit
-	 * to represent an edge vs 32-bits).
-	 */ 
+  /**
+   * List of States in the automata. Each state is a mapping of an input symbol
+   * to a bit vector (vector<bool>) in which each bit is set to 1 if there
+   * exists an edge between the current state and state_i, else 0. This is much
+   * more space efficient than representing each edge using type `int` (1 bit
+   * to represent an edge vs 32-bits).
+   */ 
   std::vector<State> states;
 
   // Input alphabet
