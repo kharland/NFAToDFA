@@ -266,18 +266,21 @@ void convert_nfa_dfa( Automata* nfa )
      * -- Algorithm --
      * 
      * while there are unmarked states:
-     *   if dfaStates is empty:
-     *     curTempState.anchors = e-closure of nfa->Start()
-     *     dfaStates.addState(curTempState);
-     *   else:
-     *     for each symbol a in Alphabet:
-     *       newState_i.anchors = e-closure of a-closure of dfaStates.firstUnmarkedState
-     *       if newState_i is not in dfaStates as state_i:
-     *         dfaStates.addState(newState_i)
-     *         dfaStates.addTrans(dfa.firstUnmarkedState, newState_i, a);
-     *       else:
-     *         dfaStates.addTrans(dfa.firstUnmarkedState, state_i)
-     *     mark dfa.firstUnmarkedState
+     *     if dfaStates is empty:
+     *         curTempState->anchors = e-closure of nfa->Start
+     *         addState curTempState to dfaStates
+     *         mark curTempState
+     *     else:
+     *         for each symbol a in Alphabet:
+     *         newState_i->anchors = e-closure of a-closure of marked state
+     *         if newState_i is not in dfaStates as state_i:
+     *             addState newState_i to dfaStates
+     *             addTrans from marked state to newstate_i in dfaStates
+     *         else:
+     *             addTrans from marked state to state_i in dfaStates
+     *     
+     *         if state was not last:
+     *             mark dfa.firstUnmarkedState
      */
     int curMarked = -1;
     do 
@@ -322,7 +325,6 @@ void convert_nfa_dfa( Automata* nfa )
                     _print_vec(newState.anchors);
                     std::cout << " = " << dfaStates.size()-1 << "\n"	;
                 }// -- End output check --
-                
             }
             
             marked[curMarked++] = true;
