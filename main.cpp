@@ -6,6 +6,7 @@
  * [x] Parse headers
  * [x] Parse initial nfa
  * [x] Implement nfa to dfa conversion
+ * [ ] Recover final states and start state after conversion
  * [ ] Improve management of memory after dfa conversion (replacment of nfa)
  * [ ] Ensure 'E' transition specified
  * [ ] Verify character parsing makes correct checks in this file at all stages
