@@ -58,7 +58,7 @@ int main( int argc, char *argv[] )
     read_alphabet(&alphabet);
 
     // Create NFA in memory and read transition table from stdin
-    Automata fa(alphabet, initState, totalStates);
+    Automata fa(alphabet, initState, totalStates, finalStates);
     read_automata(&fa);
 
     // Convert to dfa
@@ -214,28 +214,29 @@ void read_automata( Automata *nfa )
 
 
 /**
- * struct TempState
- * temporary state representation for using during NFA to DFA conversion.
- * we can't create our dfa as an Automata instance and modify it inplace 
- * because the Automata state transition table is not resizable and we 
- * don't know how many states will be required until the conversion is
- * complete.
+ * Temporary state representation for use during NFA to DFA conversion. We
+ * can't create our dfa as an Automata instance and modify it in place because
+ * the Automata state transition table is not resizable and we don't know how
+ * many states will be required until the conversion is complete.  Given a 
+ * different implementation style this would be possible.
  */
 struct TempState 
 {
-    std::vector<int> anchors;
-    std::map<char, int> next;
+    std::vector<int> anchors; // original nfa states of this dfa state
+    std::map<char, int> next; // mapping of alphabet symbols to next dfa state
 };
 
 
-/**/
+/**
+ * Print formatted output for a template vector.
+ */
 template<typename T>
 void _print_vec(std::vector<T> v) 
 {
 	std::string buf = "";
 	for (int i = 0; i<v.size(); i++) {
 		std::stringstream convert;
-		convert << v[i];
+		convert << v[i]+1;
 		buf += convert.str();
 		buf += ',';
 	}
@@ -243,7 +244,10 @@ void _print_vec(std::vector<T> v)
 }
 
 
-/**/
+/**
+ * Find the dfa-converted state needle in the list of dfa-converted states 
+ * haystack.
+ */
 int _find_state( std::vector<int> needle, std::vector<TempState> haystack ) 
 {
 	std::sort(needle.begin(), needle.end());
@@ -257,7 +261,9 @@ int _find_state( std::vector<int> needle, std::vector<TempState> haystack )
 }
 
 
-/**/
+/**
+ * Convert an nfa to a dfa
+ */
 void convert_nfa_dfa( Automata* nfa ) 
 {
     std::vector<bool> marked;
@@ -295,8 +301,8 @@ void convert_nfa_dfa( Automata* nfa )
 
             // -- Output check --
             std::cout << "E-closure(IO) = "; _print_vec(DFAStartState.anchors);
-            std::cout << " = " << curMarked << "\n";
-            std::cout << "\nMark " << curMarked << std::endl;
+            std::cout << " = " << curMarked+1 << "\n";
+            std::cout << "\nMark " << curMarked+1 << std::endl;
             // -- End output check --
         } 
         else
@@ -304,36 +310,37 @@ void convert_nfa_dfa( Automata* nfa )
             for (int i = 0; i < nfa->Alphabet().length()-1; i++) {
                 TempState cmSymClosure, newState;
                 cmSymClosure.anchors = nfa->SymClosure(dfaStates[curMarked].anchors, 
-                                                       nfa->Alphabet().at(i)),
+                                                       nfa->Alphabet(i)),
                 newState.anchors = nfa->EClosure({cmSymClosure.anchors});
 
                 int spos = _find_state(newState.anchors, dfaStates);
                 if (newState.anchors.size() > 0 && spos < 0) {
                     dfaStates.push_back(newState);
                     marked.push_back(false);
-                    dfaStates[curMarked].next[nfa->Alphabet().at(i)] = dfaStates.size()-1;
+                    dfaStates[curMarked].next[nfa->Alphabet(i)] = dfaStates.size()-1;
                 } else {
-                    dfaStates[curMarked].next[nfa->Alphabet().at(i)] = spos;
+                    dfaStates[curMarked].next[nfa->Alphabet(i)] = spos;
                 }
                 // -- Output check --
                 if (newState.anchors.size() != 0) {
                     _print_vec(dfaStates[curMarked].anchors);
-                    std::cout << "--" << nfa->Alphabet().at(i) << "--> ";
+                    std::cout << "--" << nfa->Alphabet(i) << "--> ";
                     _print_vec(cmSymClosure.anchors);
                     std::cout << "\nE-closure"; 
                     _print_vec(cmSymClosure.anchors);
                     std::cout << "= ";
                     _print_vec(newState.anchors);
-                    std::cout << " = " << dfaStates.size()-1 << "\n"	;
-                }// -- End output check --
+                    std::cout << " = " << dfaStates.size() << "\n"	;
+                }
+                // -- End output check --
             }
             
             marked[curMarked++] = true;
             // -- Output check
             if (curMarked < dfaStates.size()) {
                 std::cout << "\nMark " << curMarked << std::endl;
-            } // -- End output check --
-            
+            }
+            // -- End output check --
         }
     } 
     while (std::find(marked.begin(),marked.end(),false) != marked.end());
@@ -342,13 +349,26 @@ void convert_nfa_dfa( Automata* nfa )
     std::string dfaAlpha = nfa->Alphabet().substr(0,nfa->Alphabet().length()-1);
     int dfaStart = 0;
 
-    Automata dfa(dfaAlpha, dfaStart, dfaStates.size());
+    std::vector<int> dfaFinalStates;
+    for (int i = 0; i<nfa->FinalStates().size(); i++) {
+        for (int j = 0; j<dfaStates.size(); j++) {
+            // auto because I'm lazy
+            auto start = dfaStates[j].anchors.begin(),
+                 end = dfaStates[j].anchors.end();
+            if (find(start, end, nfa->FinalStates()[i]) != end) {
+                dfaFinalStates.push_back(j);
+            }
+        }
+    }
+
+    // Add transitions
+
+    Automata dfa(dfaAlpha, dfaStart, dfaStates.size(), dfaFinalStates);
     for (int i = 0; i<dfaStates.size(); i++) {
         for (int j = 0; j<dfa.Alphabet().length(); j++) {
             if (dfaStates[i].next[dfa.Alphabet().at(j)] >= 0)
                 dfa.AddTrans(i, dfaStates[i].next[dfa.Alphabet().at(j)], dfa.Alphabet().at(j));
         }
     }
-
     *nfa = dfa;
 }

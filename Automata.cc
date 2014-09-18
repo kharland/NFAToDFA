@@ -27,9 +27,10 @@ public:
     Automata() {};
 
     // Initializing constructor
-    Automata( std::string alphabet, int start, int numStates )
+    Automata( std::string alphabet, int start, int numStates, 
+              std::vector<int> finalStates )
     { 
-        Init(alphabet,start,numStates);
+        Init(alphabet, start, numStates, finalStates);
     }
 
     // Destructor
@@ -42,9 +43,11 @@ public:
      * Initialize the automata with an alphabet, start state and total number of
      * states.
      */
-    void Init( std::string _alphabet, int _start, int _numStates )
+    void Init( std::string _alphabet, int _start, int _numStates, 
+               std::vector<int> _finalStates )
     {
         numStates = _numStates;
+        finalStates = _finalStates;
         alphabet = _alphabet;
         start = _start;
         states.assign(numStates, State());
@@ -134,12 +137,28 @@ public:
     std::string Alphabet() const { return alphabet; }
 
     /**
+     * string Alphabet
+     * usage: alphabet = fa.Alphabet(i);
+     * -------------------------------------------------------------------------
+     * returns a copy of the input alphabet character at position i.
+     */
+    char Alphabet(int i) const { return alphabet.at(i); }
+
+    /**
      * int NumStates
      * usage: numStates = fa.NumStates();
      * -------------------------------------------------------------------------
      * Get the total number of states in the finite acceptor.
      */
     int NumStates() const { return numStates; }
+
+    /** 
+     * vector<int> FinalStates()
+     * usage: finalStates = fa.FinalStates();
+     * -------------------------------------------------------------------------
+     * Get a list of the final states in this automata.
+     */
+    std::vector<int> FinalStates() const { return finalStates; }
 
     /**
      * void Print
@@ -149,8 +168,20 @@ public:
      */
     void Print()
     {
+        // start and final states
+        std::cout << "\nInitial State: {" << start+1 << "}\n";
+        std::cout << "Final States: ";
+        std::string buf = "";
+        for (int i = 0; i<finalStates.size(); i++) {
+            std::stringstream convert;
+            convert << finalStates[i]+1;
+            buf += convert.str();
+            buf += ',';
+        }
+        std::cout << '{' << buf.substr(0, buf.length()-1) << "}\n";
+
         // header
-        std::cout << " \t";
+        std::cout << "State\t";
         for (int i = 0; i<alphabet.length(); i++) 
             std::cout << alphabet.at(i) << '\t';
         std::cout << '\n';
@@ -184,6 +215,7 @@ private:
      * to represent an edge vs 32-bits).
      */ 
     std::vector<State> states;
+    std::vector<int> finalStates;
 
     // Input alphabet
     std::string alphabet;
