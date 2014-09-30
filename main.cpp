@@ -20,13 +20,12 @@
 #include <string.h>
 #include <sstream>
 #include <vector>
+#include <algorithm> //for remove_if
 #include "Automata.cc"
 
 
 /* Forward declarations ------------------------------------------------------*/
-void read_init_state( int* );
 void read_final_states( std::vector<int>* );
-void read_total_states( int* );
 void read_alphabet( std::string* );
 void read_automata( Automata* );
 void convert_nfa_dfa( Automata* );
@@ -35,30 +34,28 @@ void convert_nfa_dfa( Automata* );
 /* Main Implementation -------------------------------------------------------*/
 int main( int argc, char *argv[] )
 {
-    if (argc == 2 && strcmp(argv[1], "h") == 0) {
+    if (argc == 2 && strcmp(argv[1], "--help") == 0) {
         std::cout << "Input Format:\n\n"
-        << "Initial State: {1}\n"
-        << "Final States:  {11,...}\n"
-        << "Total States:  11\n"
+        << "Initial State: {3}\n"
+        << "Final States:  {12,...}\n"
+        << "Total States:  15\n"
         << "State    a     b     E\n"
         << "1      {...} {...} {...}\n"
-        << "...\n\n";
+        << "...    ...\n";
+        exit(0);
     }
 
     int initState=0, totalStates=0;
     std::vector<int> finalStates;
     std::string alphabet;
 
-    // Read Initial State, Final State and Total States from stdin
-    read_init_state(&initState);
-    read_final_states(&finalStates);
-    read_total_states(&totalStates);
-
-    // Get alphabet from stdin
-    read_alphabet(&alphabet);
+    scanf("Initial State: {%d}\n", &initState); // read initial state
+    read_final_states(&finalStates);            // read final states 
+    scanf("Total States: %d\n", &totalStates);  // read total no. of states
+    read_alphabet(&alphabet);                   // read alphabet
 
     // Create NFA in memory and read transition table from stdin
-    Automata fa(alphabet, initState, totalStates, finalStates);
+    Automata fa(alphabet, initState-1, totalStates, finalStates);
     read_automata(&fa);
 
     // Convert to dfa
@@ -71,34 +68,6 @@ int main( int argc, char *argv[] )
 
 /* Helpers -------------------------------------------------------------------*/
 
-/** 
- * void read_init( int *state );
- * Read the start state of the NFA. 
- */
-void read_init_state( int *state )
-{
-    int startSeq=0;
-    std::string line, buf;
-
-    std::getline(std::cin, line);
-    if ((startSeq = line.find('{')) != std::string::npos) {
-        char c = line.at(++startSeq);
-        while(c != '}') {
-            if (iswspace(c) || isalnum(c)) {
-                buf += line.at(startSeq);
-                c = line.at(++startSeq);
-            } else {
-                std::cerr << "Invalid char " << c << " found parsing Initial State";
-                exit(-1);
-            }
-        }
-        *state = atoi(buf.c_str())-1;
-    } else {
-        std::cerr << "Malformed input while reading Initial State\n";
-        exit(-1);
-    }
-}
-
 /**  
  * void read_final_states( std::vector<int> *states );
  * Read the final states of the NFA. We use a vector here to avoid having to
@@ -107,49 +76,16 @@ void read_init_state( int *state )
  */
 void read_final_states( std::vector<int> *states )
 {
-    int startSeq=0;
-    std::string line, buf;
+    char nChar; int nDig;
 
-    std::getline(std::cin, line);
-    if ((startSeq = line.find('{')) != std::string::npos) {
-        char c = line.at(++startSeq);
-        while(1) {
-            if (c == ',') {
-                states->push_back(atoi(buf.c_str())-1);
-                buf = "";
-            } else if (c == '}') {
-                states->push_back(atoi(buf.c_str())-1);
-                buf = "";
-                break;
-            } else {
-                buf += line.at(startSeq);	
-            }
-            c = line.at(++startSeq);
-        }
-    } else {
-        std::cerr << "Malformed input while reading Final States\n";
-        exit(-1);
-    }
-}
-
-
-/**
- * void read_total_states( int *statec );
- * Read the total number of states in the NFA
- */
-void read_total_states( int *statec )
-{
-    int startSeq=0;
-    std::string line, buf;
-
-    std::getline(std::cin, line);
-    if ((startSeq = line.find(':')) != std::string::npos)
-        *statec = atoi(line.substr(startSeq+1, line.length()-startSeq-1).c_str());
-
-    if (*statec == 0) {
-        std::cerr << "Malformed input while reading Initial State\n";
-        exit(-1);
-    }
+    scanf("Final States: {");
+    do 
+    {
+        scanf("%d%c", &nDig, &nChar);
+        states->push_back(nDig-1);
+    } 
+    while (nChar != '}');
+    scanf("\n");
 }
 
 /**
@@ -158,15 +94,10 @@ void read_total_states( int *statec )
  */
 void read_alphabet( std::string *alphabet )
 {
-    std::string line, nextSym; // declare nextSym as string so ss>> ignores '\n'
-    std::cin.ignore(6,' ');    // discard 'States[ ]+'
-    getline(std::cin, line);
-    std::stringstream ss(line);
-	 
-    while (!ss.eof()) {
-        ss >> nextSym;
-        *alphabet += nextSym;
-    }
+    scanf("State");
+    getline(std::cin, *alphabet);
+    auto newEnd = std::remove_if(alphabet->begin(), alphabet->end(), isspace);
+    alphabet->erase(newEnd, alphabet->end());
 }
 
 /**
@@ -218,10 +149,10 @@ void read_automata( Automata *nfa )
  * can't create our dfa as an Automata instance and modify it in place because
  * the Automata state transition table is not resizable and we don't know how
  * many states will be required until the conversion is complete.  Given a 
- * different implementation style this would be possible.
+ * different implementation style, a different approach might be more space
+ * efficient.
  */
-struct TempState 
-{
+struct TempState {
     std::vector<int> anchors; // original nfa states of this dfa state
     std::map<char, int> next; // mapping of alphabet symbols to next dfa state
 };
@@ -237,15 +168,14 @@ void _print_vec(std::vector<T> v)
 	for (int i = 0; i<v.size(); i++) {
 		std::stringstream convert;
 		convert << v[i]+1;
-		buf += convert.str();
-		buf += ',';
+		buf += convert.str() + ',';
 	}
 	std::cout << '{' << buf.substr(0, buf.length()-1) << '}';
 }
 
 
 /**
- * Find the dfa-converted state needle in the list of dfa-converted states 
+ * Find the dfa-converted state needle in the list of dfa-converted-states 
  * haystack.
  */
 int _find_state( std::vector<int> needle, std::vector<TempState> haystack ) 
@@ -254,8 +184,9 @@ int _find_state( std::vector<int> needle, std::vector<TempState> haystack )
 	for (int i = 0; i<haystack.size(); i++) {
 		std::vector<int> hsi = haystack[i].anchors;
 		std::sort(hsi.begin(), hsi.end());
-		if (needle == hsi)
+		if (needle == hsi) {
 			return i;
+        }
 	}
 	return -1;
 }
@@ -272,22 +203,22 @@ void convert_nfa_dfa( Automata* nfa )
     /**
      * -- Algorithm --
      * 
-     * while there are unmarked states:
-     *     if dfaStates is empty:
-     *         curTempState->anchors = e-closure of nfa->Start
-     *         addState curTempState to dfaStates
-     *         mark curTempState
-     *     else:
-     *         for each symbol a in Alphabet:
-     *         newState_i->anchors = e-closure of a-closure of marked state
-     *         if newState_i is not in dfaStates as state_i:
-     *             addState newState_i to dfaStates
-     *             addTrans from marked state to newstate_i in dfaStates
-     *         else:
-     *             addTrans from marked state to state_i in dfaStates
+     * while unmarked states exist:
+     *    if empty ( dfaStates ):
+     *       curTempState.anchors = e-closure(nfa.Start)
+     *       dfaStates.addState(curTempState)
+     *       markedState = curTempState
+     *    else:
+     *       foreach a in Alphabet:
+     *          newState_i.anchors = e-closure(a-closure(markedState))
+     *          if not dfaStates.contains(newState_i):
+     *             dfaStates.addState(newState_i)
+     *             dfaStates.addTrans(markedState, newstate_i)
+     *          else:
+     *             dfaStates.addTrans(markedState, dfaStates.get(newState_i))
      *     
-     *         if state was not last:
-     *             mark dfa.firstUnmarkedState
+     *       if state was not last:
+     *          mark dfa.nextUnmarkedState
      */
     int curMarked = -1;
     do 
@@ -313,6 +244,7 @@ void convert_nfa_dfa( Automata* nfa )
                                                        nfa->Alphabet(i)),
                 newState.anchors = nfa->EClosure({cmSymClosure.anchors});
 
+                // make sure the new state doens't already exist
                 int spos = _find_state(newState.anchors, dfaStates);
                 if (newState.anchors.size() > 0 && spos < 0) {
                     dfaStates.push_back(newState);
@@ -321,8 +253,9 @@ void convert_nfa_dfa( Automata* nfa )
                 } else {
                     dfaStates[curMarked].next[nfa->Alphabet(i)] = spos;
                 }
+
                 // -- Output check --
-                if (newState.anchors.size() != 0) {
+                if (newState.anchors.size() != 0) {                    
                     _print_vec(dfaStates[curMarked].anchors);
                     std::cout << "--" << nfa->Alphabet(i) << "--> ";
                     _print_vec(cmSymClosure.anchors);
@@ -330,30 +263,32 @@ void convert_nfa_dfa( Automata* nfa )
                     _print_vec(cmSymClosure.anchors);
                     std::cout << "= ";
                     _print_vec(newState.anchors);
-                    std::cout << " = " << dfaStates.size() << "\n"	;
+                    std::cout << " = " << (spos >= 0 ? spos+1 : dfaStates.size()) << "\n";
                 }
                 // -- End output check --
             }
             
             marked[curMarked++] = true;
+
             // -- Output check
             if (curMarked < dfaStates.size()) {
-                std::cout << "\nMark " << curMarked << std::endl;
+                std::cout << "\nMark " << curMarked+1 << std::endl;
             }
             // -- End output check --
         }
     } 
-    while (std::find(marked.begin(),marked.end(),false) != marked.end());
+    while (std::find(marked.begin(),marked.end(), false) != marked.end());
 
-    // Create dfa and trim Epsilon from alphabet
+    // Trim Epsilon from alphabet
     std::string dfaAlpha = nfa->Alphabet().substr(0,nfa->Alphabet().length()-1);
+    
+    // Load DFA
     int dfaStart = 0;
-
     std::vector<int> dfaFinalStates;
     for (int i = 0; i<nfa->FinalStates().size(); i++) {
         for (int j = 0; j<dfaStates.size(); j++) {
-            // auto because I'm lazy
-            auto start = dfaStates[j].anchors.begin(),
+            // auto: because typing iterator types sucks sometimes
+            auto start = dfaStates[j].anchors.begin(), 
                  end = dfaStates[j].anchors.end();
             if (find(start, end, nfa->FinalStates()[i]) != end) {
                 dfaFinalStates.push_back(j);
@@ -362,7 +297,6 @@ void convert_nfa_dfa( Automata* nfa )
     }
 
     // Add transitions
-
     Automata dfa(dfaAlpha, dfaStart, dfaStates.size(), dfaFinalStates);
     for (int i = 0; i<dfaStates.size(); i++) {
         for (int j = 0; j<dfa.Alphabet().length(); j++) {

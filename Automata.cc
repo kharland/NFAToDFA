@@ -106,7 +106,7 @@ public:
     {
         bool added = false;
         std::vector<int> dest(anchors);
-
+        
         for (int i = 0; i < anchors.size(); i++) {
             std::vector<bool> d = states[anchors[i]]['E'];
             for (int j = 0; j < d.size(); j++) {
